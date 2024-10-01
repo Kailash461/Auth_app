@@ -1,4 +1,7 @@
 const joi= require('joi');
+const UserModel = require("../Models/user");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const signupValidation=(req,res,next)=>{
     const Schema=joi.object({
@@ -15,43 +18,58 @@ const signupValidation=(req,res,next)=>{
     next();
 }
 
-const loginValidation = async (req, res) => {
-    try {
+const loginValidation = async (req, res, next) => {
+  try {
       const { email, password } = req.body;
+
+      // Step 1: Attempt to find the user by email
       const user = await UserModel.findOne({ email });
-      const errmsg = "auth failed, password or mail is wrong";
-      
+      console.log("Retrieved User:", user); // Log user information
+
       if (!user) {
-        return res.status(403).json({
-          message: errmsg, success: false
-        });
+          return res.status(403).json({
+              message: "Auth failed, password or email is wrong",
+              success: false
+          });
       }
-  
+
+      // Step 2: Compare the provided password with the hashed password
       const isPassEqual = await bcrypt.compare(password, user.password);
+      console.log("Password Match Result:", isPassEqual); // Log result of password comparison
+
       if (!isPassEqual) {
-        return res.status(403).json({
-          message: errmsg, success: false
-        });
+          return res.status(403).json({
+              message: "Auth failed, password or email is wrong",
+              success: false
+          });
       }
-  
-      const jwtToken = jwt.sign({ email: user.email, _id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: '24h'
-      });
-  
+
+      // Step 3: Generate JWT token
+      const jwtToken = jwt.sign(
+          { email: user.email, _id: user._id },
+          process.env.JWT_SECRET,
+          { expiresIn: '24h' }
+      );
+
+      // Step 4: Return success response
       res.status(200).json({
-        message: "login successful",
-        success: true,
-        jwtToken,
-        email,
-        name: user.name
+          message: "Login successful",
+          success: true,
+          jwtToken,
+          email,
+          name: user.name
       });
-    } catch (err) {
+  } catch (err) {
+      console.error("Error during login:", err); // Log the actual error
       res.status(500).json({
-        message: "internal server error",
-        success: false
+          message: "Internal server error in validation",
+          success: false,
+          error: err.message // Include error message in response for debugging
       });
-    }
-  };
+  }
+};
+
+
   
 module.exports={
     

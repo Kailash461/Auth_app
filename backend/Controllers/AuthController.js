@@ -65,7 +65,7 @@ const login = async (req, res) => {
     } catch (err) {
         console.error("Error during login:", err);
         res.status(500).json({
-            message: "Internal server error",
+            message: "Internal server error in controller ",
             success: false
         });
     }
